@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useAuthStore } from "../store/useAuthStore";
 import { Eye, EyeOff, Loader2, Lock, Mail, MessageSquare, User } from "lucide-react";
 import { Link } from "react-router-dom";
+import GoogleButton from "react-google-button";
 
 import AuthImagePattern from "../components/AuthImagePattern";
 import toast from "react-hot-toast";
@@ -15,6 +16,7 @@ const SignUpPage = () => {
   });
 
   const { signup, isSigningUp } = useAuthStore();
+  const { googleLogin } = useAuthStore();
 
   const validateForm = () => {
     if (!formData.fullName.trim()) return toast.error("Full name is required");
@@ -32,6 +34,10 @@ const SignUpPage = () => {
     const success = validateForm();
 
     if (success === true) signup(formData);
+  };
+
+  const handleGoogleSignIn = async () => {
+    await googleLogin();
   };
 
   return (
@@ -138,6 +144,9 @@ const SignUpPage = () => {
                 Sign in
               </Link>
             </p>
+          </div>
+          <div className="flex flex-col items-center gap-2 group">
+            <GoogleButton type="dark" onClick={handleGoogleSignIn} />
           </div>
         </div>
       </div>

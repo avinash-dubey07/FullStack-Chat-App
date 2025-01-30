@@ -3,6 +3,7 @@ import { useAuthStore } from "../store/useAuthStore";
 import AuthImagePattern from "../components/AuthImagePattern";
 import { Link } from "react-router-dom";
 import { Eye, EyeOff, Loader2, Lock, Mail, MessageSquare } from "lucide-react";
+import GoogleButton from "react-google-button";
 
 const LoginPage = () => {
   const [showPassword, setShowPassword] = useState(false);
@@ -11,10 +12,15 @@ const LoginPage = () => {
     password: "",
   });
   const { login, isLoggingIn } = useAuthStore();
+  const { googleLogin } = useAuthStore();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     login(formData);
+  };
+
+  const handleGoogleSignIn = async () => {
+    await googleLogin();
   };
 
   return (
@@ -92,7 +98,7 @@ const LoginPage = () => {
                   Loading...
                 </>
               ) : (
-                "Login"
+                "Sign In"
               )}
             </button>
           </form>
@@ -104,6 +110,9 @@ const LoginPage = () => {
                 Create account
               </Link>
             </p>
+          </div>
+          <div className="flex flex-col items-center gap-2 group">
+            <GoogleButton type="dark" onClick={handleGoogleSignIn} />
           </div>
         </div>
       </div>

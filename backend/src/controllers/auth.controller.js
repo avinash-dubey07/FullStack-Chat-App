@@ -2,6 +2,8 @@ import { generateToken } from "../lib/utils.js";
 import User from "../models/user.model.js";
 import bcrypt from "bcryptjs";
 import cloudinary from "../lib/cloudinary.js";
+import admin from "../firebaseAdmin.js";
+
 
 export const signup = async (req, res) => {
   const { email, password, fullName } = req.body;
@@ -44,6 +46,44 @@ export const signup = async (req, res) => {
   } catch (error) {
     console.log("Error in signup Controller", error.message);
     res.status(500).json({ message: "Interenal Server Error" });
+  }
+};
+
+export const googleLogin = async (req, res) => {
+  try {
+    const { token } = req.body; // Token from frontend
+
+    // Verify Firebase token
+    const decodedToken = await admin.auth().verifyIdToken(token);
+    const { email, name, picture, uid } = decodedToken;
+
+    let user = await User.findOne({ email });
+    // let user = await User.findOne({ firebaseUid: uid});     To link users to Firebase authentication directly
+
+    if (!user) {
+      // Create a new user if they don't exist
+      user = new User({
+        email,
+        fullName: name || "Google User",
+        profilePic: picture || "",
+        password: null,      // No password for Google user
+        //firebaseUid: uid,    // Store Firebase UID
+      });
+      await user.save();
+    }
+
+    // Generate JWT token for session
+    generateToken(user._id, res);
+
+    res.status(200).json({
+      _id: user._id,
+      fullName: user.fullName,
+      email: user.email,
+      profilePic: user.profilePic,
+    });
+  } catch (error) {
+    console.error("Error in Google Login:", error);
+    res.status(500).json({ message: "Google authentication failed" });
   }
 };
 
