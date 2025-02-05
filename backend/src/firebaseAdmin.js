@@ -1,7 +1,7 @@
 import admin from "firebase-admin";
-import serviceAccount from "./serviceAccountKey.json" assert { type: "json" };
 
-// Initialize Firebase Admin SDK
+const serviceAccount = JSON.parse(Buffer.from(process.env.FIREBASE_CREDENTIALS, "base64").toString());
+
 admin.initializeApp({
   credential: admin.credential.cert(serviceAccount),
 });
