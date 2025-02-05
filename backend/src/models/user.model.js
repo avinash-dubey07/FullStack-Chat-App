@@ -20,6 +20,10 @@ const userSchema = new mongoose.Schema(
       type: String,
       default: "",
     },
+    fcmToken: {
+      type: [String],
+      default: [],    // Stores the user's FCM token
+    },
   },
   {
     timestamps: true,

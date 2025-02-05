@@ -2,7 +2,7 @@ import { create } from "zustand";
 import { axiosInstance } from "../lib/axios.js";
 import toast from "react-hot-toast";
 import { io } from "socket.io-client";
-import { auth, provider } from "../firebase.config.js";
+import { auth, provider,requestForToken, onMessageListener } from "../firebase.config.js";
 import { signInWithPopup } from "firebase/auth";
 
 const BASE_URL = import.meta.env.MODE === "development" ? "http://localhost:5001" : "/";
@@ -15,12 +15,18 @@ export const useAuthStore = create((set, get) => ({
   isCheckingAuth: true,
   onlineUsers: [],
   socket:null,
+  fcmToken: null,
 
   checkAuth: async () => {
     try {
       const res = await axiosInstance.get("/auth/check");
       set({ authUser: res.data });
       get().connectSocket();
+
+      // Request FCM token after authentication check
+      const token = await requestForToken();
+      if (token) set({ fcmToken: token });
+
     } catch (error) {
       console.log("Error in checkAuth:", error);
       set({ authUser: null });
@@ -60,7 +66,7 @@ export const useAuthStore = create((set, get) => ({
 
   googleLogin: async () => {
     try {
-      // Set custom parameters for account selection
+      // Setting custom parameters for account selection
       provider.setCustomParameters({
         prompt: 'select_account',
       });
@@ -69,13 +75,22 @@ export const useAuthStore = create((set, get) => ({
       const user = result.user;
       const idToken = await user.getIdToken(); // Firebase ID token
   
-      // Send the ID token to the backend
+      // Sending the ID token to the backend
       const response = await axiosInstance.post("/auth/google-login", { token: idToken });
   
       set({ authUser: response.data });
       toast.success("Logged in with Google successfully");
   
       get().connectSocket();
+
+      const token = await requestForToken();
+      if (token) {
+        set({ fcmToken: token });
+
+        // Sending token to backend to store
+        await axiosInstance.post("/user/update-fcm-token", { token });
+      }
+
     } catch (error) {
       console.error("Error during Google sign-in:", error);
       toast.error("Google login failed");
@@ -123,6 +138,11 @@ export const useAuthStore = create((set, get) => ({
     socket.on("getOnlineUsers", (userIds) => {
       set({ onlineUsers: userIds });
     });
+    // Listen for push notifications
+    onMessageListener().then((payload) => {
+      console.log("Notification received:", payload);
+      toast.success(payload.notification.title);
+    }).catch((err) => console.log("FCM Message Error:", err));
   },
   disconnectSocket: () => {
     if (get().socket?.connected) get().socket.disconnect();
